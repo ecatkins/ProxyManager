@@ -113,12 +113,14 @@ class ProxyManager:
             return {'status':'fail', 'typ':'error', 'status_code':None}
 
 
-
-        if r.status_code != 200:
+        if r.status_code not in [200, 404]:
             chosen_proxy.fail()
             msg = '{} remaining proxies'.format(len([i for i in self.proxy_list if i.status == 1]))
             logging.info(msg)
             return {'status':'fail', 'typ':'status_code', 'status_code':r.status_code}
+
+        elif r.status_code == 404:
+            return {'status':'fail', 'typ':'status_code', 'status_code':r.status_code, 'response':r}
 
 
         captcha = self.captcha_check(r)
@@ -127,7 +129,7 @@ class ProxyManager:
             logging.info('Captcha FAIL')
             msg = '{} remaining proxies'.format(len([i for i in self.proxy_list if i.status == 1]))
             logging.info(msg)
-            return {'status':'fail', 'typ':'captcha', 'status_code':None}
+            return {'status':'fail', 'typ':'captcha', 'status_code':None, 'response':r}
 
 
         chosen_proxy.success()
