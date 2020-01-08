@@ -16,7 +16,7 @@ summary: "summary"
 -->
 
 
-# Proxy Manager
+# Proxy Manager - Python
 
 The package is intended to manage a set of proxies, rotating through at random, to prevent blocking. Proxies are dropped from the rotation if they fail multiple times in a row.
 
@@ -40,7 +40,7 @@ URL = 'http://www.myurl.com'
 
 from ProxyManager.core import ProxyManager, Proxy
 
-proxies = [Proxy(i) for i in PROXY_LIST]
+proxies = [i for i in PROXY_LIST] # OR [Proxy(i) for i in PROXY_LIST]
 response = proxies.make_request(URL)
 ```
 

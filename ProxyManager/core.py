@@ -65,6 +65,9 @@ class Proxy:
 class ProxyManager:
 
     def __init__(self, proxy_list):
+        if not isinstance(proxy_list[0], Proxy):
+            proxy_list = [Proxy(i) for i in proxy_list]
+
         self.proxy_list = proxy_list
 
     def get_proxy_dict(self, proxy):
@@ -83,6 +86,14 @@ class ProxyManager:
     def get_proxy(self):
         valid_proxies = [i for i in self.proxy_list if i.status == 1]
         return random.choice(valid_proxies)
+
+    def captcha_check(self, r):
+
+        if "h5>Please verify you\'re a human to continue." in r.text:
+            return True
+
+        return False
+
 
 
     def one_request(self, url, timeout=30):
@@ -110,6 +121,14 @@ class ProxyManager:
             return {'status':'fail', 'typ':'status_code', 'status_code':r.status_code}
 
 
+        captcha = self.captcha_check(r)
+        if captcha:
+            chosen_proxy.fail()
+            logging.info('Captcha FAIL')
+            msg = '{} remaining proxies'.format(len([i for i in self.proxy_list if i.status == 1]))
+            logging.info(msg)
+            return {'status':'fail', 'typ':'captcha', 'status_code':None}
+
 
         chosen_proxy.success()
         return {'status':'success', 'response':r, 'status_code': 200}
@@ -123,3 +142,4 @@ class ProxyManager:
             result = self.one_request(url)
             if result.get('status') == 'success': return result
 
+        return result
