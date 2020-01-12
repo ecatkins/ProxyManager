@@ -18,7 +18,7 @@ summary: "summary"
 
 # Proxy Manager - Python
 
-The package is intended to manage a set of proxies, rotating through at random, to prevent blocking. Proxies are dropped from the rotation if they fail multiple times in a row.
+The package is intended to manage a set of proxies, rotating through at random, to prevent blocking. Proxies are currently dropped from the rotation if they fail twice in a row.
 
 VERY EARLY STAGE
 
@@ -41,7 +41,18 @@ URL = 'http://www.myurl.com'
 from ProxyManager.core import ProxyManager, Proxy
 
 proxies = [i for i in PROXY_LIST] # OR [Proxy(i) for i in PROXY_LIST]
-response = proxies.make_request(URL)
+PM = ProxyManager(proxies)
+result = PM.make_request(URL)
+
+# Pass a fail function into make_request method, to check for domain/website specific indicators that the request has failed
+# i.e. tell the ProxyManager, that this request has failed
+def fail_function(response):
+    if '<something_wrong_about>' in response:
+        return True
+    return False
+
+result = PM.make_request(URL, fail_func=fail_function) # or PM.fail_func = fail_function
+
 ```
 
 

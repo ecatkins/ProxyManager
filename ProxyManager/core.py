@@ -69,6 +69,8 @@ class ProxyManager:
             proxy_list = [Proxy(i) for i in proxy_list]
 
         self.proxy_list = proxy_list
+        self.last_proxy = None
+        self.fail_func = None
 
     def get_proxy_dict(self, proxy):
         if not proxy.startswith('http'): proxy = 'http://' + proxy
@@ -80,25 +82,31 @@ class ProxyManager:
         headers = { "Connection" : "close","User-Agent" : ua }
         return headers
 
-
-
-
     def get_proxy(self):
         valid_proxies = [i for i in self.proxy_list if i.status == 1]
         return random.choice(valid_proxies)
 
     def captcha_check(self, r):
-
         if "h5>Please verify you\'re a human to continue." in r.text:
             return True
-
         return False
+
+    def manual_fail(self):
+        if self.last_proxy:
+            logging.info("Manual Fail")
+            self.last_proxy.fail()
 
 
 
     def one_request(self, url, timeout=30):
 
+        if len(self.proxy_list) == 0:
+            logging.info("No more proxies remain")
+            raise Exception
+
+
         chosen_proxy = self.get_proxy()
+        self.last_proxy = chosen_proxy
 
         proxy_dict = self.get_proxy_dict(chosen_proxy.proxy)
         headers = self.get_headers()
@@ -132,13 +140,20 @@ class ProxyManager:
             return {'status':'fail', 'typ':'captcha', 'status_code':None, 'response':r}
 
 
+        if self.fail_func and self.fail_func(r):
+            chosen_proxy.fail()
+            logging.info("Manual FAIL")
+            msg = '{} remaining proxies'.format(len([i for i in self.proxy_list if i.status == 1]))
+            logging.info(msg)
+            return {'status':'fail', 'type':'manual', 'status_code':r.status_code, 'response':r}
+
+
+
         chosen_proxy.success()
         return {'status':'success', 'response':r, 'status_code': 200}
 
-    def make_request(self, url):
-        if len(self.proxy_list) == 0:
-            print("NO MORE PROXIES")
-            raise Exception
+    def make_request(self, url, fail_func=None):
+        if fail_func:self.fail_func = fail_func
 
         for i in range(min(len(self.proxy_list),5)):
             result = self.one_request(url)
